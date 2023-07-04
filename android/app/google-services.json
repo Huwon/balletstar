@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "822583769696",
+    "project_id": "junytony-ballet-star",
+    "storage_bucket": "junytony-ballet-star.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:822583769696:android:d3ade372b8278e7cae2105",
+        "android_client_info": {
+          "package_name": "com.junytony.balletstar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrce0n_qzDAag0-2yytFaTS70gkMdx1n8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
