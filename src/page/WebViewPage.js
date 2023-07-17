@@ -26,6 +26,8 @@ import PushNotification from 'react-native-push-notification'
 import queryString from 'query-string'
 import { API } from './API';
 
+import MusicControl from 'react-native-music-control'
+
 const WebViewPage = (props) => {
   let { height, width } = Dimensions.get('window')
 
@@ -45,7 +47,11 @@ const WebViewPage = (props) => {
   const [webview_load, set_webview_load] = React.useState(false)
   const webViews = React.useRef()
   const [is_loading, set_is_loading] = React.useState(false)
-  const { route, navigation } = props
+  const { route, navigation } = props;
+
+  const [musicState, setMusicState] = React.useState('');
+
+
 
   React.useEffect(() => {
     
@@ -248,8 +254,6 @@ messaging().setBackgroundMessageHandler(async (remoteMessage) => {
 
 
   const MovePage = async (MoveUri) => {
-
-
     let moveUri = 'window.location = "' + MoveUri + '"';
     webViews.current.injectJavaScript(moveUri);
   }
@@ -361,6 +365,160 @@ messaging().setBackgroundMessageHandler(async (remoteMessage) => {
     }
   }
 
+  const setMusicControlHandler = () => {
+   
+    MusicControl.enableControl('play', true)
+    MusicControl.enableControl('pause', true)
+    MusicControl.enableControl('stop', false)
+    MusicControl.enableControl('nextTrack', true)
+    MusicControl.enableControl('previousTrack', true)
+    MusicControl.enableControl('seek', true) // Android only
+    MusicControl.enableControl('closeNotification', true, { when: 'always' })
+  }
+
+
+
+  const musicPlayHandler = () => {
+    MusicControl.on('play',()=>{
+      webViews.current.postMessage(JSON.stringify({
+        action : musicState==='pause' ? 'replay' : 'now_play',
+      }))
+    })
+  }
+
+  const musicPauseHandler = () => {
+    MusicControl.on('pause',()=>{
+      webViews.current.postMessage(JSON.stringify({
+        action : 'pause',
+      }))
+    })
+  }
+
+  const musicNextHandler = () => {
+    MusicControl.on('nextTrack',()=>{
+      webViews.current.postMessage(JSON.stringify({
+        action : 'next',
+      }))
+    })
+  }
+
+  const musicPrevHandler = () => {
+    MusicControl.on('previousTrack',()=>{
+      webViews.current.postMessage(JSON.stringify({
+        action : 'prev',
+      }))
+    })
+  }
+
+  const musicSeekHandler = () => {
+    MusicControl.on('seek',(position) => {
+      console.log(position);
+      webViews.current.postMessage(JSON.stringify({
+        action : 'move_bar',
+        seek : position,
+      }))
+    })
+  }
+
+  React.useEffect(()=>{
+    musicPlayHandler();
+    musicPauseHandler();
+    musicSeekHandler();
+    musicNextHandler();
+    musicPrevHandler();
+  
+    return () => {
+      MusicControl.stopControl();
+      MusicControl.resetNowPlaying();
+    }
+  },[])
+
+  
+
+  const handleMessage = (event) => {
+    // WebView에서 전달된 메시지 수신
+    try{
+      const message = JSON.parse(event.nativeEvent.data);
+
+      console.log('message' , message)
+
+    // 수신한 메시지에 따라 필요한 동작 수행
+      const { title, artist, duration,action, pause_duration,replay_duration,move_duration} = message;
+      setMusicState(action);
+
+      if(action === 'now_play' && !replay_duration){
+
+        MusicControl.setNowPlaying({
+          title: title,
+          artwork: require('../assets/img/music_icon.png'), // URL or RN's image require()
+          artist: artist,
+          album: 'Thriller',
+          // genre: 'Post-disco, Rhythm and Blues, Funk, Dance-pop',
+          duration: duration, // (Seconds)
+          description: '', // Android Only
+          color: 0xffffff, // Android Only - Notification Color
+          colorized: true, // Android 8+ Only - Notification Color extracted from the artwork. Set to false to use the color property instead
+          date: '1983-01-02T00:00:00Z', // Release Date (RFC 3339) - Android Only
+          rating: 0, // Android Only (Boolean or Number depending on the type)
+          notificationIcon: 'my_custom_icon', // Android Only (String), Android Drawable resource name for a custom notification icon
+          isLiveStream: true, // iOS Only (Boolean), Show or hide Live Indicator instead of seekbar on lock screen for live streams. Default value is false.
+        })
+
+        MusicControl.updatePlayback({
+          state: MusicControl.STATE_PLAYING, // (STATE_ERROR, STATE_STOPPED, STATE_PLAYING, STATE_PAUSED, STATE_BUFFERING)
+          speed: 1, // Playback Rate
+          elapsedTime: 0, // (Seconds)
+          // bufferedTime: 200, // Android Only (Seconds)
+          volume: 10, // Android Only (Number from 0 to maxVolume) - Only used when remoteVolume is enabled
+          maxVolume: 10, // Android Only (Number) - Only used when remoteVolume is enabled
+        })
+      }
+      else if((action === 'replay' && replay_duration)){
+        MusicControl.updatePlayback({
+          state: MusicControl.STATE_PLAYING,
+          speed: 1,
+          elapsedTime: replay_duration,
+          // bufferedTime: 200, 
+          volume: 10, // Android Only (Number from 0 to maxVolume) - Only used when remoteVolume is enabled
+          maxVolume: 10, // Android Only (Number) - Only used when remoteVolume is enabled
+        })
+      }
+      else if((action === 'move_bar' && move_duration)){
+        MusicControl.updatePlayback({
+          state: MusicControl.STATE_PLAYING, // (STATE_ERROR, STATE_STOPPED, STATE_PLAYING, STATE_PAUSED, STATE_BUFFERING)
+          speed: 1, // Playback Rate
+          elapsedTime: move_duration, // (Seconds)
+          // bufferedTime: 200, // Android Only (Seconds)
+          volume: 10, // Android Only (Number from 0 to maxVolume) - Only used when remoteVolume is enabled
+          maxVolume: 10, // Android Only (Number) - Only used when remoteVolume is enabled
+        })
+      }
+      else if(action === 'pause'){
+        MusicControl.updatePlayback({
+          state: MusicControl.STATE_PAUSED, // (STATE_ERROR, STATE_STOPPED, STATE_PLAYING, STATE_PAUSED, STATE_BUFFERING)
+          elapsedTime: pause_duration, // (Seconds)
+        })
+      }
+    }
+    catch(err){
+      Alert.alert(err);
+    }
+      // 이벤트 처리 로직을 작성
+  };
+  React.useEffect(()=>{
+    setMusicControlHandler();
+  },[])
+
+  React.useEffect(()=>{
+    if(musicState === 'pause'){
+      musicPlayHandler();
+    }
+    else if(musicState === 'now_play'){
+      musicSeekHandler();
+    }
+  },[musicState])
+
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       {is_loading ? (
@@ -370,7 +528,7 @@ messaging().setBackgroundMessageHandler(async (remoteMessage) => {
             source={{ uri: webview_url }}
             useWebKit={true}
             sharedCookiesEnabled
-            onMessage={(webViews) => onWebViewMessage(webViews)}
+            onMessage={(webViews) => handleMessage(webViews)}
             onNavigationStateChange={(webViews) =>
               onNavigationStateChange(webViews)
             }

@@ -34,6 +34,8 @@
     "react-native": "0.68.2",
     "react-native-gesture-handler": "2.9.0",
     "react-native-image-picker": "^5.3.1",
+    "react-native-music-control": "^1.4.1",
+    "react-native-notifications": "^4.3.5",
     "react-native-pager-view": "^6.2.0",
     "react-native-push-notification": "^8.1.1",
     "react-native-safe-area-context": "^4.5.2",
@@ -52,7 +54,8 @@
     "styled-system": "^5.1.5",
     "urijs": "^1.19.11",
     "yarn": "^1.22.19",
-    "yup": "^1.1.1"
+    "yup": "^1.1.1",
+    "zustand": "^4.3.9"
   },
   "devDependencies": {
     "@babel/core": "^7.21.8",
